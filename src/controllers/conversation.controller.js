@@ -1,20 +1,12 @@
+import { catchAsync } from "../utils/catchAsync.js";
+import {
+  getConversationForUser,
+  createMessage,
+} from "../services/message.service.js";
+import { getIO } from "../sockets/io.js";
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
 import { ApiError } from "../utils/ApiError.js";
-import { catchAsync } from "../utils/catchAsync.js";
-
-const getConversationForUser = async (conversationId, userId) => {
-  const conversation = await Conversation.findOne({
-    _id: conversationId,
-    participants: userId,
-  });
-
-  if (!conversation) {
-    throw new ApiError(404, "Conversation not found");
-  }
-
-  return conversation;
-};
 
 export const getConversations = catchAsync(async (req, res) => {
   const conversations = await Conversation.find({
@@ -86,27 +78,16 @@ export const getMessages = catchAsync(async (req, res) => {
 });
 
 export const sendMessage = catchAsync(async (req, res) => {
-  const { content } = req.body;
-
-  if (!content?.trim()) {
-    throw new ApiError(400, "Message content is required");
-  }
-
-  const conversation = await getConversationForUser(
-    req.params.id,
-    req.user._id,
-  );
-
-  const message = await Message.create({
-    conversation: conversation._id,
-    sender: req.user._id,
-    content: content.trim(),
+  const { message, conversationId } = await createMessage({
+    conversationId: req.params.id,
+    userId: req.user._id,
+    content: req.body.content,
   });
 
-  conversation.lastMessage = message._id;
-  await conversation.save();
-
-  await message.populate("sender", "username displayName avatar");
+  const io = getIO();
+  if (io) {
+    io.to(`conversation:${conversationId}`).emit("new_message", { message });
+  }
 
   res.status(201).json({
     success: true,
