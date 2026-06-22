@@ -1,0 +1,16 @@
+{
+  "name": "real-time-chat-system",
+  "version": "1.0.0",
+  "description": "Real-time chat system backend — Node.js, Express, MongoDB",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {},
+  "keywords": [
+    "chat",
+    "express",
+    "mongodb",
+    "socket.io"
+  ],
+  "author": "",
+  "license": "MIT"
+}
